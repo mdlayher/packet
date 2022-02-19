@@ -1,7 +1,6 @@
 package packet
 
 import (
-	"errors"
 	"net"
 	"os"
 	"syscall"
@@ -9,6 +8,9 @@ import (
 
 	"github.com/mdlayher/socket"
 )
+
+// TODO(mdlayher): pulling in *socket.Conn at the root breaks windows builds;
+// this is a slight nuisance but probably worth fixing up here and in vsock.
 
 const (
 	// network is the network reported in net.OpError.
@@ -77,8 +79,12 @@ var (
 // A Conn is an Linux packet sockets (AF_PACKET) implementation of a
 // net.PacketConn.
 type Conn struct {
-	c    *socket.Conn
-	addr *Addr
+	c *socket.Conn
+
+	// Metadata about the local connection.
+	addr     *Addr
+	ifIndex  int
+	protocol uint16
 }
 
 // Close closes the connection.
@@ -92,12 +98,42 @@ func (c *Conn) LocalAddr() net.Addr { return c.addr }
 
 // ReadFrom implements the net.PacketConn ReadFrom method.
 func (c *Conn) ReadFrom(b []byte) (int, net.Addr, error) {
-	return 0, nil, errors.New("todo")
+	// From net.PacketConn documentation:
+	//
+	// "[ReadFrom] returns the number of bytes read (0 <= n <= len(p)) and any
+	// error encountered. Callers should always process the n > 0 bytes returned
+	// before considering the error err."
+	//
+	// Every error return should always return all the information we have.
+	n, sa, err := c.c.Recvfrom(b, 0)
+	if err != nil {
+		return n, nil, c.opError(opRead, err)
+	}
+
+	return n, fromSockaddr(sa), nil
 }
 
 // WriteTo implements the net.PacketConn WriteTo method.
 func (c *Conn) WriteTo(b []byte, addr net.Addr) (int, error) {
-	return 0, errors.New("todo")
+	sa, err := toSockaddr("sendto", addr, c.ifIndex, c.protocol)
+	if err != nil {
+		return 0, c.opError(opWrite, err)
+	}
+
+	// From packet(7):
+	//
+	// "When you send packets it is enough to specify sll_family, sll_addr,
+	// sll_halen, sll_ifindex, and sll_protocol. The other fields should be 0."
+	//
+	// sll_family is set on the conversion to unix.RawSockaddrLinklayer.
+	//
+	// TODO(mdlayher): it's curious that unix.Sendto does not return the number
+	// of bytes actually sent. Fake it for now, but investigate upstream.
+	if err := c.c.Sendto(b, sa, 0); err != nil {
+		return 0, c.opError(opWrite, err)
+	}
+
+	return len(b), nil
 }
 
 // SetDeadline implements the net.PacketConn SetDeadline method.

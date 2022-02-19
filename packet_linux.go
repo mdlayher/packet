@@ -76,14 +76,66 @@ func bind(c *socket.Conn, ifIndex, protocol int) (*Conn, error) {
 	copy(addr, lsall.Addr[:])
 
 	return &Conn{
-		c:    c,
-		addr: &Addr{HardwareAddr: addr},
+		c: c,
+
+		addr:     &Addr{HardwareAddr: addr},
+		ifIndex:  ifIndex,
+		protocol: pnet,
 	}, nil
 }
 
 // fileConn is the entry point for FileConn on Linux.
 func fileConn(f *os.File) (*Conn, error) {
 	panic("todo")
+}
+
+// fromSockaddr converts an opaque unix.Sockaddr to *Addr. It panics if sa is
+// not of type *unix.SockaddrLinklayer.
+func fromSockaddr(sa unix.Sockaddr) *Addr {
+	sall := sa.(*unix.SockaddrLinklayer)
+
+	return &Addr{
+		// The syscall already allocated sa; just slice into it with the
+		// appropriate length and type conversion rather than making a copy.
+		HardwareAddr: net.HardwareAddr(sall.Addr[:sall.Halen]),
+	}
+}
+
+// toSockaddr converts a net.Addr to an opaque unix.Sockaddr. It returns an
+// error if the fields cannot be packed into a *unix.SockaddrLinklayer.
+func toSockaddr(
+	op string,
+	addr net.Addr,
+	ifIndex int,
+	protocol uint16,
+) (unix.Sockaddr, error) {
+	// The typical error convention for net.Conn types is
+	// net.OpError(os.SyscallError(syscall.Errno)), so all calls here should
+	// return os.SyscallError(syscall.Errno) so the caller can apply the final
+	// net.OpError wrapper.
+
+	// Ensure the correct Addr type.
+	a, ok := addr.(*Addr)
+	if !ok || a.HardwareAddr == nil {
+		return nil, os.NewSyscallError(op, unix.EINVAL)
+	}
+
+	// Pack Addr and Conn metadata into the appropriate sockaddr fields.
+	sa := unix.SockaddrLinklayer{
+		Ifindex:  ifIndex,
+		Protocol: protocol,
+	}
+
+	// Ensure the input address does not exceed the amount of space available;
+	// for example an IPoIB address is 20 bytes.
+	if len(a.HardwareAddr) > len(sa.Addr) {
+		return nil, os.NewSyscallError(op, unix.EINVAL)
+	}
+
+	sa.Halen = uint8(len(a.HardwareAddr))
+	copy(sa.Addr[:], a.HardwareAddr)
+
+	return &sa, nil
 }
 
 // htons converts a short (uint16) from host-to-network byte order. Thanks to

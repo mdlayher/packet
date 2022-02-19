@@ -32,7 +32,8 @@ const (
 type Config struct{}
 
 // Type is a socket type used when creating a Conn with Listen.
-type Type int // enumcheck
+//enumcheck:exhaustive
+type Type int
 
 // Possible Type values. Note that the zero value is not valid: callers must
 // always specify one of Raw or Datagram when calling Listen.

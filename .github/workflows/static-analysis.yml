@@ -34,5 +34,11 @@ jobs:
     - name: Run staticcheck
       run: staticcheck ./...
 
+    - name: Install enumcheck
+      run: go install loov.dev/enumcheck@latest
+
+    - name: Run enumcheck
+      run: enumcheck ./...
+
     - name: Run go vet
       run: go vet ./...

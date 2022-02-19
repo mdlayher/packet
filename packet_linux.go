@@ -13,6 +13,40 @@ import (
 	"golang.org/x/sys/unix"
 )
 
+// A conn is the net.PacketConn implementation for packet sockets. We can use
+// socket.Conn directly on Linux to implement most of the necessary methods.
+type conn = socket.Conn
+
+// readFrom implements the net.PacketConn ReadFrom method using recvfrom(2).
+func (c *Conn) readFrom(b []byte) (int, net.Addr, error) {
+	// From net.PacketConn documentation:
+	//
+	// "[ReadFrom] returns the number of bytes read (0 <= n <= len(p)) and any
+	// error encountered. Callers should always process the n > 0 bytes returned
+	// before considering the error err."
+	//
+	// c.opError will return nil if no error, but either way we return all the
+	// information that we have.
+	n, sa, err := c.c.Recvfrom(b, 0)
+	return n, fromSockaddr(sa), c.opError(opRead, err)
+}
+
+// writeTo implements the net.PacketConn WriteTo method.
+func (c *Conn) writeTo(b []byte, addr net.Addr) (int, error) {
+	sa, err := c.toSockaddr("sendto", addr)
+	if err != nil {
+		return 0, c.opError(opWrite, err)
+	}
+
+	// TODO(mdlayher): it's curious that unix.Sendto does not return the number
+	// of bytes actually sent. Fake it for now, but investigate upstream.
+	if err := c.c.Sendto(b, sa, 0); err != nil {
+		return 0, c.opError(opWrite, err)
+	}
+
+	return len(b), nil
+}
+
 // listen is the entry point for Listen on Linux.
 func listen(ifi *net.Interface, socketType Type, protocol int, _ *Config) (*Conn, error) {
 	// TODO(mdlayher): Config default nil check and initialize. Pass options to
@@ -89,9 +123,13 @@ func fileConn(f *os.File) (*Conn, error) {
 	panic("todo")
 }
 
-// fromSockaddr converts an opaque unix.Sockaddr to *Addr. It panics if sa is
-// not of type *unix.SockaddrLinklayer.
+// fromSockaddr converts an opaque unix.Sockaddr to *Addr. If sa is nil, it
+// returns nil. It panics if sa is not of type *unix.SockaddrLinklayer.
 func fromSockaddr(sa unix.Sockaddr) *Addr {
+	if sa == nil {
+		return nil
+	}
+
 	sall := sa.(*unix.SockaddrLinklayer)
 
 	return &Addr{
@@ -103,11 +141,9 @@ func fromSockaddr(sa unix.Sockaddr) *Addr {
 
 // toSockaddr converts a net.Addr to an opaque unix.Sockaddr. It returns an
 // error if the fields cannot be packed into a *unix.SockaddrLinklayer.
-func toSockaddr(
+func (c *Conn) toSockaddr(
 	op string,
 	addr net.Addr,
-	ifIndex int,
-	protocol uint16,
 ) (unix.Sockaddr, error) {
 	// The typical error convention for net.Conn types is
 	// net.OpError(os.SyscallError(syscall.Errno)), so all calls here should
@@ -120,10 +156,16 @@ func toSockaddr(
 		return nil, os.NewSyscallError(op, unix.EINVAL)
 	}
 
-	// Pack Addr and Conn metadata into the appropriate sockaddr fields.
+	// Pack Addr and Conn metadata into the appropriate sockaddr fields. From
+	// packet(7):
+	//
+	// "When you send packets it is enough to specify sll_family, sll_addr,
+	// sll_halen, sll_ifindex, and sll_protocol. The other fields should be 0."
+	//
+	// sll_family is set on the conversion to unix.RawSockaddrLinklayer.
 	sa := unix.SockaddrLinklayer{
-		Ifindex:  ifIndex,
-		Protocol: protocol,
+		Ifindex:  c.ifIndex,
+		Protocol: c.protocol,
 	}
 
 	// Ensure the input address does not exceed the amount of space available;

@@ -2,7 +2,6 @@ package packet
 
 import (
 	"net"
-	"os"
 	"syscall"
 	"time"
 )
@@ -53,22 +52,9 @@ func Listen(ifi *net.Interface, socketType Type, protocol int, cfg *Config) (*Co
 	return l, nil
 }
 
-// FileConn returns a copy of the network connection corresponding to an open
-// os.File. It is the caller's responsibility to close the Conn when finished.
-// Closing the Conn does not affect the os.File, and closing the os.File does
-// not affect the Conn.
-//
-// This function is intended for advanced use cases and most callers should use
-// Listen instead.
-func FileConn(f *os.File) (*Conn, error) {
-	l, err := fileConn(f)
-	if err != nil {
-		// No addresses available.
-		return nil, opError(opListen, err, nil)
-	}
-
-	return l, nil
-}
+// TODO(mdlayher): we want to support FileConn for advanced use cases, but this
+// library would also need a big endian protocol value and an interface index.
+// For now we won't bother, but reconsider in the future.
 
 var (
 	_ net.PacketConn = &Conn{}

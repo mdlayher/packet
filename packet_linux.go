@@ -118,11 +118,6 @@ func bind(c *socket.Conn, ifIndex, protocol int) (*Conn, error) {
 	}, nil
 }
 
-// fileConn is the entry point for FileConn on Linux.
-func fileConn(f *os.File) (*Conn, error) {
-	panic("todo")
-}
-
 // fromSockaddr converts an opaque unix.Sockaddr to *Addr. If sa is nil, it
 // returns nil. It panics if sa is not of type *unix.SockaddrLinklayer.
 func fromSockaddr(sa unix.Sockaddr) *Addr {

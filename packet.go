@@ -6,9 +6,6 @@ import (
 	"time"
 )
 
-// TODO(mdlayher): pulling in *socket.Conn at the root breaks windows builds;
-// this is a slight nuisance but probably worth fixing up here and in vsock.
-
 const (
 	// network is the network reported in net.OpError.
 	network = "packet"

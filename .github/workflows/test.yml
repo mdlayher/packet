@@ -27,8 +27,14 @@ jobs:
     - name: Check out code into the Go module directory
       uses: actions/checkout@v2
 
+    - name: Build test binary
+      run: go test -c
+
+    # This package requires elevated privileges to do basically anything, and
+    # since we share this CI workflow between Linux and macOS, just use sudo
+    # since that's easier than setting a Linux capability.
     - name: Run tests
-      run: go test -race ./...
+      run: sudo ./packet.test -test.race -test.v
 
   build-windows:
     strategy:

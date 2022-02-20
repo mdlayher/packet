@@ -1,4 +1,4 @@
-name: Test
+name: Unsupported
 
 on:
   push:
@@ -13,9 +13,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        go-version: [1.12, 1.17]
-        os: [ubuntu-latest, macos-latest]
-    runs-on: ${{ matrix.os }}
+        go-version: [1.17]
+    runs-on: ubuntu-latest
 
     steps:
     - name: Set up Go
@@ -27,7 +26,9 @@ jobs:
     - name: Check out code into the Go module directory
       uses: actions/checkout@v2
 
-    # Run basic tests, we just want to make sure there is parity on Linux and
-    # macOS, and back to the oldest version of Go this library supports.
-    - name: Run tests
-      run: go test ./...
+    # Although this package doesn't support Windows, we want to verify that
+    # everything builds properly.
+    - name: Verify build for non-UNIX platforms
+      run: go build
+      env:
+        GOOS: windows

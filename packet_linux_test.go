@@ -1,3 +1,10 @@
+//go:build go1.16
+// +build go1.16
+
+// Just because the library builds and runs on older versions of Go doesn't mean
+// we have to apply the same restrictions for tests. Go 1.16 is the oldest
+// upstream supported version of Go as of February 2022.
+
 package packet_test
 
 import (

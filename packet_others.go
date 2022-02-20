@@ -9,6 +9,8 @@ import (
 	"runtime"
 	"syscall"
 	"time"
+
+	"golang.org/x/net/bpf"
 )
 
 // errUnimplemented is returned by all functions on non-Linux platforms.
@@ -25,4 +27,5 @@ func (*conn) Close() error                          { return errUnimplemented }
 func (*conn) SetDeadline(_ time.Time) error         { return errUnimplemented }
 func (*conn) SetReadDeadline(_ time.Time) error     { return errUnimplemented }
 func (*conn) SetWriteDeadline(_ time.Time) error    { return errUnimplemented }
+func (*conn) SetBPF(_ []bpf.RawInstruction) error   { return errUnimplemented }
 func (*conn) SyscallConn() (syscall.RawConn, error) { return nil, errUnimplemented }

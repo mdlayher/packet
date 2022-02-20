@@ -4,6 +4,8 @@ import (
 	"net"
 	"syscall"
 	"time"
+
+	"golang.org/x/net/bpf"
 )
 
 const (
@@ -18,12 +20,22 @@ const (
 	opRawWrite    = "raw-write"
 	opRead        = "read"
 	opSet         = "set"
+	opSetBPF      = "set-bpf"
 	opSyscallConn = "syscall-conn"
 	opWrite       = "write"
 )
 
 // Config contains options for a Conn.
-type Config struct{}
+type Config struct {
+	// Filter is an optional assembled BPF filter which can be applied to the
+	// Conn before bind(2) is called.
+	//
+	// The Conn.SetBPF method serves the same purpose once a Conn has already
+	// been opened, but setting Filter applies the BPF filter before the Conn is
+	// bound. This ensures that unexpected packets will not be captured before
+	// the Conn is opened.
+	Filter []bpf.RawInstruction
+}
 
 // Type is a socket type used when creating a Conn with Listen.
 //enumcheck:exhaustive
@@ -38,8 +50,12 @@ const (
 )
 
 // Listen opens a packet sockets connection on the specified interface, using
-// the given socket type and protocol values. The socket type must be one of the
-// Type constants: Raw or Datagram.
+// the given socket type and protocol values.
+//
+// The socket type must be one of the Type constants: Raw or Datagram.
+//
+// The Config specifies optional configuration for the Conn. A nil *Config
+// applies the default configuration.
 func Listen(ifi *net.Interface, socketType Type, protocol int, cfg *Config) (*Conn, error) {
 	l, err := listen(ifi, socketType, protocol, cfg)
 	if err != nil {
@@ -56,6 +72,7 @@ func Listen(ifi *net.Interface, socketType Type, protocol int, cfg *Config) (*Co
 var (
 	_ net.PacketConn = &Conn{}
 	_ syscall.Conn   = &Conn{}
+	_ bpf.Setter     = &Conn{}
 )
 
 // A Conn is an Linux packet sockets (AF_PACKET) implementation of a
@@ -101,6 +118,11 @@ func (c *Conn) SetReadDeadline(t time.Time) error {
 // SetWriteDeadline implements the net.PacketConn SetWriteDeadline method.
 func (c *Conn) SetWriteDeadline(t time.Time) error {
 	return c.opError(opSet, c.c.SetWriteDeadline(t))
+}
+
+// SetBPF attaches an assembled BPF program to the Conn.
+func (c *Conn) SetBPF(filter []bpf.RawInstruction) error {
+	return c.opError(opSetBPF, c.c.SetBPF(filter))
 }
 
 // SyscallConn returns a raw network connection. This implements the

@@ -48,9 +48,11 @@ func (c *Conn) writeTo(b []byte, addr net.Addr) (int, error) {
 }
 
 // listen is the entry point for Listen on Linux.
-func listen(ifi *net.Interface, socketType Type, protocol int, _ *Config) (*Conn, error) {
-	// TODO(mdlayher): Config default nil check and initialize. Pass options to
-	// socket.Config where necessary.
+func listen(ifi *net.Interface, socketType Type, protocol int, cfg *Config) (*Conn, error) {
+	if cfg == nil {
+		// Default configuration.
+		cfg = &Config{}
+	}
 
 	// Convert Type to the matching SOCK_* constant.
 	var typ int
@@ -71,7 +73,7 @@ func listen(ifi *net.Interface, socketType Type, protocol int, _ *Config) (*Conn
 		return nil, err
 	}
 
-	conn, err := bind(c, ifi.Index, protocol)
+	conn, err := bind(c, ifi.Index, protocol, cfg)
 	if err != nil {
 		_ = c.Close()
 		return nil, err
@@ -81,7 +83,14 @@ func listen(ifi *net.Interface, socketType Type, protocol int, _ *Config) (*Conn
 }
 
 // bind binds the *socket.Conn to finalize *Conn setup.
-func bind(c *socket.Conn, ifIndex, protocol int) (*Conn, error) {
+func bind(c *socket.Conn, ifIndex, protocol int, cfg *Config) (*Conn, error) {
+	if len(cfg.Filter) > 0 {
+		// The caller wants to apply a BPF filter before bind(2).
+		if err := c.SetBPF(cfg.Filter); err != nil {
+			return nil, err
+		}
+	}
+
 	// packet(7) says we sll_protocol must be in network byte order.
 	pnet, err := htons(protocol)
 	if err != nil {

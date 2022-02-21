@@ -37,6 +37,18 @@ func TestConnListen(t *testing.T) {
 		t.Fatalf("failed to read Ethernet frame: %v", err)
 	}
 
+	// Received some data, assume some Stats were populated.
+	stats, err := c.Stats()
+	if err != nil {
+		t.Fatalf("failed to fetch stats: %v", err)
+	}
+	if stats.Packets == 0 {
+		t.Fatal("stats indicated 0 received packets")
+	}
+
+	t.Logf("  - packets: %d, drops: %d, freeze queue count: %d",
+		stats.Packets, stats.Drops, stats.FreezeQueueCount)
+
 	// TODO(mdlayher): we could import github.com/mdlayher/ethernet, but parsing
 	// an Ethernet frame header is fairly easy and this keeps the go.mod tidy.
 

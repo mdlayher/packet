@@ -65,6 +65,35 @@ func (c *Conn) setPromiscuous(enable bool) error {
 	)
 }
 
+// stats wraps getsockopt(2) for tpacket_stats* types.
+func (c *Conn) stats() (*Stats, error) {
+	const (
+		level = unix.SOL_PACKET
+		name  = unix.PACKET_STATISTICS
+	)
+
+	// Try to fetch V3 statistics first, they contain more detailed information.
+	if stats, err := c.c.GetSockoptTpacketStatsV3(level, name); err == nil {
+		return &Stats{
+			Packets:          stats.Packets,
+			Drops:            stats.Drops,
+			FreezeQueueCount: stats.Freeze_q_cnt,
+		}, nil
+	}
+
+	// There was an error fetching v3 stats, try to fall back.
+	stats, err := c.c.GetSockoptTpacketStats(level, name)
+	if err != nil {
+		return nil, c.opError(opGetsockopt, err)
+	}
+
+	return &Stats{
+		Packets: stats.Packets,
+		Drops:   stats.Drops,
+		// FreezeQueueCount is not present.
+	}, nil
+}
+
 // listen is the entry point for Listen on Linux.
 func listen(ifi *net.Interface, socketType Type, protocol int, cfg *Config) (*Conn, error) {
 	if cfg == nil {

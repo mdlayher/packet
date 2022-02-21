@@ -14,6 +14,7 @@ const (
 
 	// Operation names which may be returned in net.OpError.
 	opClose       = "close"
+	opGetsockopt  = "getsockopt"
 	opListen      = "listen"
 	opRawControl  = "raw-control"
 	opRawRead     = "raw-read"
@@ -130,6 +131,26 @@ func (c *Conn) SetBPF(filter []bpf.RawInstruction) error {
 func (c *Conn) SetPromiscuous(enable bool) error {
 	return c.setPromiscuous(enable)
 }
+
+// Stats contains statistics about a Conn reported by the Linux kernel.
+type Stats struct {
+	// The total number of packets received.
+	Packets uint32
+
+	// The number of packets dropped.
+	Drops uint32
+
+	// The total number of times that a receive queue is frozen. May be zero if
+	// the Linux kernel is not new enough to support TPACKET_V3 statistics.
+	FreezeQueueCount uint32
+}
+
+// Stats retrieves statistics about the Conn from the Linux kernel.
+//
+// Note that calling Stats will reset the kernel's internal counters for this
+// Conn. If you want to maintain cumulative statistics by polling Stats over
+// time, you must do so in your calling code.
+func (c *Conn) Stats() (*Stats, error) { return c.stats() }
 
 // SyscallConn returns a raw network connection. This implements the
 // syscall.Conn interface.

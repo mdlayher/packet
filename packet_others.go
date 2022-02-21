@@ -20,6 +20,7 @@ func listen(_ *net.Interface, _ Type, _ int, _ *Config) (*Conn, error) { return 
 
 func (*Conn) readFrom(_ []byte) (int, net.Addr, error)  { return 0, nil, errUnimplemented }
 func (*Conn) writeTo(_ []byte, _ net.Addr) (int, error) { return 0, errUnimplemented }
+func (*Conn) setPromiscuous(_ bool) error               { return errUnimplemented }
 
 type conn struct{}
 

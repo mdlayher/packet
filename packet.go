@@ -20,7 +20,7 @@ const (
 	opRawWrite    = "raw-write"
 	opRead        = "read"
 	opSet         = "set"
-	opSetBPF      = "set-bpf"
+	opSetsockopt  = "setsockopt"
 	opSyscallConn = "syscall-conn"
 	opWrite       = "write"
 )
@@ -122,7 +122,13 @@ func (c *Conn) SetWriteDeadline(t time.Time) error {
 
 // SetBPF attaches an assembled BPF program to the Conn.
 func (c *Conn) SetBPF(filter []bpf.RawInstruction) error {
-	return c.opError(opSetBPF, c.c.SetBPF(filter))
+	return c.opError(opSetsockopt, c.c.SetBPF(filter))
+}
+
+// SetPromiscuous enables or disables promiscuous mode on the Conn, allowing it
+// to receive traffic that is not addressed to the Conn's network interface.
+func (c *Conn) SetPromiscuous(enable bool) error {
+	return c.setPromiscuous(enable)
 }
 
 // SyscallConn returns a raw network connection. This implements the

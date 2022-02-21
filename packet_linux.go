@@ -47,6 +47,24 @@ func (c *Conn) writeTo(b []byte, addr net.Addr) (int, error) {
 	return len(b), nil
 }
 
+// setPromiscuous wraps setsockopt(2) for the unix.PACKET_MR_PROMISC option.
+func (c *Conn) setPromiscuous(enable bool) error {
+	mreq := unix.PacketMreq{
+		Ifindex: int32(c.ifIndex),
+		Type:    unix.PACKET_MR_PROMISC,
+	}
+
+	membership := unix.PACKET_DROP_MEMBERSHIP
+	if enable {
+		membership = unix.PACKET_ADD_MEMBERSHIP
+	}
+
+	return c.opError(
+		opSetsockopt,
+		c.c.SetsockoptPacketMreq(unix.SOL_PACKET, membership, &mreq),
+	)
+}
+
 // listen is the entry point for Listen on Linux.
 func listen(ifi *net.Interface, socketType Type, protocol int, cfg *Config) (*Conn, error) {
 	if cfg == nil {

@@ -4,11 +4,13 @@
 package packet
 
 import (
+	"encoding/binary"
 	"errors"
 	"math"
 	"net"
 	"os"
 
+	"github.com/josharian/native"
 	"github.com/mdlayher/socket"
 	"golang.org/x/sys/unix"
 )
@@ -231,14 +233,15 @@ func (c *Conn) toSockaddr(
 	return &sa, nil
 }
 
-// htons converts a short (uint16) from host-to-network byte order. Thanks to
-// mikioh for this neat trick:
-// https://github.com/mikioh/-stdyng/blob/master/afpacket.go
+// htons converts a short (uint16) from host-to-network byte order.
 func htons(i int) (uint16, error) {
-	if i > math.MaxUint16 {
+	if i < 0 || i > math.MaxUint16 {
 		return 0, errors.New("packet: protocol value out of range")
 	}
 
-	v := uint16(i)
-	return (v<<8)&0xff00 | v>>8, nil
+	// Store as big endian, retrieve as native endian.
+	var b [2]byte
+	binary.BigEndian.PutUint16(b[:], uint16(i))
+
+	return native.Endian.Uint16(b[:]), nil
 }

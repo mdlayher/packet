@@ -132,6 +132,12 @@ func (c *Conn) SetPromiscuous(enable bool) error {
 	return c.setPromiscuous(enable)
 }
 
+// SetPromiscuous enables or disables promiscuous mode on the Conn, allowing it
+// to receive traffic that is not addressed to the Conn's network interface.
+func (c *Conn) SetMembership(enable bool, Type uint16, addr net.HardwareAddr) error {
+	return c.setMembership(enable, Type, addr)
+}
+
 // Stats contains statistics about a Conn reported by the Linux kernel.
 type Stats struct {
 	// The total number of packets received.

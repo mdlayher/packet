@@ -51,9 +51,20 @@ func (c *Conn) writeTo(b []byte, addr net.Addr) (int, error) {
 
 // setPromiscuous wraps setsockopt(2) for the unix.PACKET_MR_PROMISC option.
 func (c *Conn) setPromiscuous(enable bool) error {
+	return c.setMembership(enable, unix.PACKET_MR_PROMISC, nil)
+}
+
+const ETH_ALEN uint16 = 6
+
+// setMembership wraps setsockopt(2) for PACKET_MR_*
+func (c *Conn) setMembership(enable bool, Type uint16, addr net.HardwareAddr) error {
 	mreq := unix.PacketMreq{
 		Ifindex: int32(c.ifIndex),
-		Type:    unix.PACKET_MR_PROMISC,
+		Type:    Type,
+		Alen:    ETH_ALEN,
+	}
+	if Type == unix.PACKET_MR_MULTICAST {
+		copy(mreq.Address[:], addr)
 	}
 
 	membership := unix.PACKET_DROP_MEMBERSHIP

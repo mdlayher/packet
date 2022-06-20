@@ -1,4 +1,4 @@
-module github.com/mdlayher/packet
+module github.com/synfinatic/packet
 
 go 1.17
 

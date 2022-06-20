@@ -36,11 +36,25 @@ type Config struct {
 	// bound. This ensures that unexpected packets will not be captured before
 	// the Conn is opened.
 	Filter []bpf.RawInstruction
+
+	// devices support setting the direction to listen to packets on
+	Direction Direction
 }
+
+// Clone PCAP_D_* values from pcap/pcap.h
+type Direction int
+
+const (
+	DirectionInOut Direction = iota
+	DirectionIn
+	DirectionOut
+)
 
 // Type is a socket type used when creating a Conn with Listen.
 //enumcheck:exhaustive
 type Type int
+
+const ()
 
 // Possible Type values. Note that the zero value is not valid: callers must
 // always specify one of Raw or Datagram when calling Listen.

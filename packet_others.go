@@ -1,17 +1,8 @@
-//go:build !linux
-// +build !linux
+//go:build !linux && !darwin
+// +build !linux,!darwin
 
 package packet
 
-import (
-	"fmt"
-	"runtime"
-)
-
-// errUnimplemented is returned as appropriate on non-Linux platforms.
-var errUnimplemented = fmt.Errorf("packet: not implemented on %s", runtime.GOOS)
-
-/*
 import (
 	"fmt"
 	"net"
@@ -22,6 +13,8 @@ import (
 	"golang.org/x/net/bpf"
 )
 
+// errUnimplemented is returned as appropriate
+var errUnimplemented = fmt.Errorf("packet: not implemented on %s", runtime.GOOS)
 
 func listen(_ *net.Interface, _ Type, _ int, _ *Config) (*Conn, error) { return nil, errUnimplemented }
 
@@ -38,4 +31,3 @@ func (*conn) SetReadDeadline(_ time.Time) error     { return errUnimplemented }
 func (*conn) SetWriteDeadline(_ time.Time) error    { return errUnimplemented }
 func (*conn) SetBPF(_ []bpf.RawInstruction) error   { return errUnimplemented }
 func (*conn) SyscallConn() (syscall.RawConn, error) { return nil, errUnimplemented }
-*/

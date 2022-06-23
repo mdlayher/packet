@@ -1,4 +1,3 @@
-// go:build darwin
 //go:build darwin
 // +build darwin
 
@@ -18,6 +17,10 @@ import (
 	"golang.org/x/net/bpf"
 	"golang.org/x/sys/unix"
 )
+
+func errUnimplemented(call string) error {
+	return fmt.Errorf("%s(): not implemented on %s", call, runtime.GOOS)
+}
 
 func listen(ifi *net.Interface, socketType Type, protocol int, cfg *Config) (*Conn, error) {
 	var f *os.File
@@ -147,7 +150,7 @@ func (c *Conn) setPromiscuous(b bool) error {
 }
 
 func (c *Conn) stats() (*Stats, error) {
-	return nil, errUnimplemented
+	return nil, errUnimplemented("stats")
 }
 
 type conn struct {
@@ -178,7 +181,7 @@ func (c *conn) SetReadDeadline(t time.Time) error {
 }
 
 func (*conn) SetWriteDeadline(_ time.Time) error {
-	return errUnimplemented
+	return errUnimplemented("SetWriteDeadline")
 }
 
 func (c *conn) SetBPF(filter []bpf.RawInstruction) error {
@@ -194,7 +197,7 @@ func (c *conn) SetBPF(filter []bpf.RawInstruction) error {
 }
 
 func (*conn) SyscallConn() (syscall.RawConn, error) {
-	return nil, errUnimplemented
+	return nil, errUnimplemented("SyscallConn")
 }
 
 // configureBPF configures a BPF device with the specified file descriptor to

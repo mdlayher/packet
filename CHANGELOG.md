@@ -1,5 +1,9 @@
 # CHANGELOG
 
+# v1.1.1
+
+- [Bug Fix]: fix test compilation on big endian machines.
+
 # v1.1.0
 
 **This is the first release of package packet that only supports Go 1.18+. Users

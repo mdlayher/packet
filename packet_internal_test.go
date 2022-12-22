@@ -60,7 +60,7 @@ func Test_htons(t *testing.T) {
 
 			// Depending on our GOARCH, the result may be big or little endian.
 			var want uint16
-			if native.Endian == binary.LittleEndian {
+			if native.Endian == binary.ByteOrder(binary.LittleEndian) {
 				want = tt.vLE
 			} else {
 				want = tt.vBE

@@ -1,14 +1,12 @@
-# packet [![Test Status](https://github.com/synfinatic/packet/workflows/Test/badge.svg)](https://github.com/synfinatic/packet/actions) [![Go Reference](https://pkg.go.dev/badge/github.com/mdlayher/packet.svg)](https://pkg.go.dev/github.com/mdlayher/packet)  [![Go Report Card](https://goreportcard.com/badge/github.com/mdlayher/packet)](https://goreportcard.com/report/github.com/synfinatic/packet)
+# packet [![Test Status](https://github.com/mdlayher/packet/workflows/Test/badge.svg)](https://github.com/mdlayher/packet/actions) [![Go Reference](https://pkg.go.dev/badge/github.com/mdlayher/packet.svg)](https://pkg.go.dev/github.com/mdlayher/packet)  [![Go Report Card](https://goreportcard.com/badge/github.com/mdlayher/packet)](https://goreportcard.com/report/github.com/mdlayher/packet)
 
-`synfinatic/packet` is a fork of [mdlayher/packet](https://github.com/mdlayher/packet)
-which  provides access to Linux packet sockets (`AF_PACKET`) and adds
-limited BPF support for \*BSD systems:
+Package `packet` provides access to Linux packet sockets (`AF_PACKET`). MIT
+Licensed.
+
+This includes limited BPF support for \*BSD systems:
 
  * FreeBSD
  * MacOS
- * Others?
-
-MIT Licensed.
 
 ## Stability
 

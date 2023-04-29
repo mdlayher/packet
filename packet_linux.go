@@ -76,7 +76,7 @@ func (c *Conn) stats() (*Stats, error) {
 	)
 
 	// Try to fetch V3 statistics first, they contain more detailed information.
-	if stats, err := c.c.GetSockoptTpacketStatsV3(level, name); err == nil {
+	if stats, err := c.c.GetsockoptTpacketStatsV3(level, name); err == nil {
 		return &Stats{
 			Packets:          stats.Packets,
 			Drops:            stats.Drops,
@@ -85,7 +85,7 @@ func (c *Conn) stats() (*Stats, error) {
 	}
 
 	// There was an error fetching v3 stats, try to fall back.
-	stats, err := c.c.GetSockoptTpacketStats(level, name)
+	stats, err := c.c.GetsockoptTpacketStats(level, name)
 	if err != nil {
 		return nil, c.opError(opGetsockopt, err)
 	}

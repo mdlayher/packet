@@ -1,5 +1,9 @@
 # CHANGELOG
 
+# v1.1.2
+
+- [Improvement]: updated dependencies, test with Go 1.20.
+
 # v1.1.1
 
 - [Bug Fix]: fix test compilation on big endian machines.

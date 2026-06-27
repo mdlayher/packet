@@ -4,13 +4,12 @@
 package packet
 
 import (
-	"encoding/binary"
 	"fmt"
 	"math"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/josharian/native"
+	"golang.org/x/sys/cpu"
 )
 
 func Test_htons(t *testing.T) {
@@ -60,14 +59,14 @@ func Test_htons(t *testing.T) {
 
 			// Depending on our GOARCH, the result may be big or little endian.
 			var want uint16
-			if native.Endian == binary.ByteOrder(binary.LittleEndian) {
-				want = tt.vLE
-			} else {
+			if cpu.IsBigEndian {
 				want = tt.vBE
+			} else {
+				want = tt.vLE
 			}
 
 			if diff := cmp.Diff(hex(want), hex(v)); diff != "" {
-				t.Fatalf("unexpected output for %s GOARCH (-want +got):\n%s", native.Endian.String(), diff)
+				t.Fatalf("unexpected output for big endian %v GOARCH (-want +got):\n%s", cpu.IsBigEndian, diff)
 			}
 		})
 	}

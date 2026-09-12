@@ -12,7 +12,6 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/josharian/native"
 	"golang.org/x/sys/unix"
 )
 
@@ -62,15 +61,20 @@ func Test_htons(t *testing.T) {
 			}
 
 			// Depending on our GOARCH, the result may be big or little endian.
-			var want uint16
-			if native.Endian == binary.ByteOrder(binary.LittleEndian) {
-				want = tt.vLE
+			// binary.NativeEndian.String reports "NativeEndian" rather than
+			// the order it actually uses, so probe it instead.
+			var (
+				want   uint16
+				endian = "BigEndian"
+			)
+			if binary.NativeEndian.Uint16([]byte{0x01, 0x00}) == 0x0001 {
+				want, endian = tt.vLE, "LittleEndian"
 			} else {
 				want = tt.vBE
 			}
 
 			if diff := cmp.Diff(hex(want), hex(v)); diff != "" {
-				t.Fatalf("unexpected output for %s GOARCH (-want +got):\n%s", native.Endian.String(), diff)
+				t.Fatalf("unexpected output for %s GOARCH (-want +got):\n%s", endian, diff)
 			}
 		})
 	}

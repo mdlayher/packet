@@ -11,7 +11,6 @@ import (
 	"net"
 	"os"
 
-	"github.com/josharian/native"
 	"github.com/mdlayher/socket"
 	"golang.org/x/sys/unix"
 )
@@ -271,5 +270,5 @@ func htons(i int) (uint16, error) {
 	var b [2]byte
 	binary.BigEndian.PutUint16(b[:], uint16(i))
 
-	return native.Endian.Uint16(b[:]), nil
+	return binary.NativeEndian.Uint16(b[:]), nil
 }

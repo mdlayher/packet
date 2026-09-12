@@ -5,12 +5,15 @@ package packet
 
 import (
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"math"
+	"net"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/josharian/native"
+	"golang.org/x/sys/unix"
 )
 
 func Test_htons(t *testing.T) {
@@ -75,4 +78,64 @@ func Test_htons(t *testing.T) {
 
 func hex(v uint16) string {
 	return fmt.Sprintf("%#04x", v)
+}
+
+func Test_setPacketMreqAddressTooLong(t *testing.T) {
+	tests := []struct {
+		name string
+		addr net.HardwareAddr
+	}{
+		{
+			name: "one byte too long",
+			addr: make(net.HardwareAddr, 9),
+		},
+		{
+			name: "IPoIB",
+			addr: make(net.HardwareAddr, 20),
+		},
+	}
+
+	// The address length is checked before the Conn is used to invoke
+	// setsockopt(2), so a Conn which carries nothing but the metadata needed
+	// to produce an error suffices, and no privileges are required.
+	fns := []struct {
+		name string
+		fn   func(*Conn, net.HardwareAddr) error
+	}{
+		{
+			name: "joinGroup",
+			fn:   (*Conn).joinGroup,
+		},
+		{
+			name: "leaveGroup",
+			fn:   (*Conn).leaveGroup,
+		},
+	}
+
+	for _, tt := range tests {
+		for _, fn := range fns {
+			t.Run(tt.name+"/"+fn.name, func(t *testing.T) {
+				c := &Conn{addr: &Addr{HardwareAddr: make(net.HardwareAddr, 6)}}
+
+				err := fn.fn(c, tt.addr)
+				if err == nil {
+					t.Fatal("expected an error, but none occurred")
+				}
+				t.Logf("err: %v", err)
+
+				// The error must carry the package's usual
+				// net.OpError(os.SyscallError(unix.Errno)) shape.
+				var oerr *net.OpError
+				if !errors.As(err, &oerr) {
+					t.Fatalf("error was not a *net.OpError: %T", err)
+				}
+				if diff := cmp.Diff(opSetsockopt, oerr.Op); diff != "" {
+					t.Fatalf("unexpected net.OpError Op (-want +got):\n%s", diff)
+				}
+				if !errors.Is(err, unix.EINVAL) {
+					t.Fatalf("expected unix.EINVAL, but got: %v", err)
+				}
+			})
+		}
+	}
 }

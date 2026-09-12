@@ -244,6 +244,10 @@ func (a *Addr) Network() string { return network }
 
 // String returns the string representation of an Addr.
 func (a *Addr) String() string {
+	if a == nil {
+		return "<nil>"
+	}
+
 	return a.HardwareAddr.String()
 }
 
